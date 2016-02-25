@@ -41,27 +41,78 @@ classdef clusteringCompare
     properties
         mixedClust
         numericClust
-        originalData
-        tempvar
         output
+        trialsNo
         data
+        tempvar
     end
     methods
         function obj = clusteringCompare(filename, catAttributes, ncols, ...
                 startRow, trialsNo)
-            if nargin < 6
-                turnoffFigures = 0;
-            elseif nargin < 5
-                trialsNo = 5;
+            if nargin < 5
+                trialsNo = 1;
             elseif nargin < 4
                 startRow = 1;
             elseif nargin < 3
                 display('not enough inputs')
             end
-            obj.dataimport(obj,filename, catAttributes, ncols, startRow)
-            obj.mixedclust = mixedclust(data, k, max_iter, inputType,trialsNo)
-            obj.numericClust = result.numericClust;
-            obj.originalData = result.origionalData;
+            obj.trialsNo = trialsNo;
+            obj = dataimport(obj,filename, catAttributes, ncols, startRow);
+            obj.mixedClust = mixedclust(obj.data, obj.tempvar.k, 1000, inputType,trialsNo);
+            obj.mixedClust = mclust(obj.mixedClust);
+            [n,m] = size(obj.data);
+            obj.numericClust = struct;
+            obj.numericClust.idx = zeros(m,obj.trialsNo);
+            obj.numericClust.D = zeros(m,obj.tempvar.k,obj.trialsNo);
+            obj.numericClust.silh = zeros(n,obj.trialsNo);
+            obj.numericClust.avg_silh = zeros(1,obj.trialsNo);
+            for i=1:obj.trialsNo
+                [idx,~,~,D] = kmeans(data,obj.tempvar.k);
+                obj.numericClust.idx = idx;
+                obj.numericClust.dist(:,:,i) = D;
+                silh = zeros(n,1);
+                for j = 1:n
+                    x = sort(D(j,:));
+                    silh(j) = (x(2)-x(1))/x(2);
+                end
+                obj.numericClust.silh(:,i) = silh;
+                obj.numericClust.avg_silh(i) = mean(silh);
+            end
+        end
+        function obj = compareOut(obj)
+            obj.numericClust.performance = zeros(1,obj.tempvar.trialsNo);
+            obj.mixedClust.performance = zeros(1,obj.tempvar.trialsNo);
+            for nameidx=1:2
+                if nameidx==1
+                    name = 'mixedClust';
+                elseif nameidx==2
+                    name = 'numericClusst';
+                end
+                for i=1:obj.tempvar.trialsNo
+                    idx = obj.(name).idx(:,:,i);
+                    k = numel(unique(obj.output));
+                    ErrorMatrix = zeros(k);
+                    output_values = unique(obj.output);
+                    for emCol = 1:k
+                        parfor emRow = 1:k
+                            output_emRow = output_values(emRow);
+                            for oRow = 1:length(obj.output)
+                                if (obj.output ~= output_emRow) && ...
+                                        (idx(oRow) == emCol);
+                                    ErrorMatrix(emCol,emRow) ...
+                                        = ErrorMatrix(emCol,emRow)+1;
+                                end
+                            end
+                        end
+                    end
+                    [mEM, nEM] = size(ErrorMatrix);
+                    if mEM~=nEM
+                        display('Warning, matrix must be square');
+                    end
+                    [~, count] = assignmentoptimal(ErrorMatrix);
+                    obj.(name).performance(i) = 1-count/length(idx);
+                end
+            end
         end
         function obj = dataimport(obj,filename, catAttributes, ncols, startRow)
             
@@ -103,25 +154,23 @@ classdef clusteringCompare
             datasource = [dataArray{1:end-1}];
             
             %% Options for alsahaf_mixed_kmeans
-            data = datasource(:,1:(end-1));
-            obj.data = data;
-            output = datasource(:,end);
-            if min(min(output))==0
-                output = output + 1;
-            elseif min(min(output))~=1
+            obj.data = datasource(:,1:(end-1));
+            obj.output = datasource(:,end);
+            if min(min(obj.output))==0
+                obj.output = obj.output + 1;
+            elseif min(min(obj.output))~=1
                 disp('Error: Datasource may not have proper categorical assignments')
             end
-            obj.output = output;
             
-            obj.tempvar.k = length(unique(output));
+            obj.tempvar.k = length(unique(obj.output));
             
-            [~,dc] = size(data);
+            [~,dc] = size(obj.data);
             inputType = zeros(1,dc);
             for q=1:length(catAttributes)
                 inputType(catAttributes(q)) = 1;
-                if min(min(data(:,catAttributes(q))))== 0
-                    data(:,catAttributes(q)) = data(:,catAttributes(q)) + 1;
-                elseif min(min(data(:,catAttributes(q))))~=1
+                if min(min(obj.data(:,catAttributes(q))))== 0
+                    obj.data(:,catAttributes(q)) = obj.data(:,catAttributes(q)) + 1;
+                elseif min(min(obj.data(:,catAttributes(q))))~=1
                     disp('Error: Datasource may not have proper categorical assignments')
                 end
             end

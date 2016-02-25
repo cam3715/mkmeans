@@ -7,7 +7,7 @@ iris = clusteringCompare('iris.all.csv',[],5,2,nTrials);
 pause(15*60)
 
 display('Lenses')
-lenses = clusteringCompare('lenses.all.csv',[1:4],5,2,nTrials);
+lenses = clusteringCompare('lenses.all.csv',1:4,5,2,nTrials);
 
 pause(15*60)
 
@@ -18,7 +18,7 @@ heart = clusteringCompare('Heart2.csv',heartlabels,14,2,nTrials);
 pause(15*60)
 
 display('Vote')
-vote = clusteringCompare('vote.all.csv',[1:16],17,2,nTrials);
+vote = clusteringCompare('vote.all.csv',1:16,17,2,nTrials);
 
 pause(15*60)
 

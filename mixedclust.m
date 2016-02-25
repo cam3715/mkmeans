@@ -58,6 +58,7 @@ classdef mixedclust
     
     properties
         data
+        m_idx
         k
         max_iter
         inputType
@@ -120,7 +121,7 @@ classdef mixedclust
             %% Mixed KMeans
             obj.tempvar.silhouette_mixed_mean = zeros(1,obj.trialsNo);
             
-            obj.tempvar.m_idx = zeros(obj.tempvar.dn,obj.trialsNo);
+            obj.tempvar.obj.m_idx = zeros(obj.tempvar.dn,obj.trialsNo);
                         
             [obj.tempvar.n,obj.tempvar.m] = size(obj.data);
             obj.tempvar.idx_num = find(~obj.inputType);
@@ -172,7 +173,6 @@ classdef mixedclust
         end
         function obj = sigpairs(obj)
             D = obj.data_discrete;
-            m = size(D,2);
             
             % define the attribute, its unique values, and all unique pairs
             for i=1:obj.tempvar.m
@@ -187,13 +187,13 @@ classdef mixedclust
         end
         function obj = signif(obj)
             
-            significances = zeros(obj.tempvar.m,1);
+            sigs = zeros(obj.tempvar.m,1);
             parfor i=1:obj.tempvar.m
                 
-                significances(i) = significance(obj,i);
+                sigs(i) = significance(obj,i);
                 
             end
-            obj.significances = significances;
+            obj.significances = sigs;
         end
         function obj = mclust(obj)
             n = obj.tempvar.dn;
@@ -237,7 +237,7 @@ classdef mixedclust
                         end
                         
                         [~,new_idx(i)] = min(k_distances);
-                        m_distance(i,:,iMixed) = k_distances;
+%                         m_distance(i,:,iMixed) = k_distances;
                         min1 = min(k_distances);
                         min2 = min(setdiff(k_distances(:),min(k_distances(:))));
                         silh_c(i) = (min2-min1)/max(min1,min2);
@@ -247,8 +247,8 @@ classdef mixedclust
                 end
                 
                 idx = new_idx;
-                m_idx(:,iMixed) = idx;
-                silhouette_mixed_mean(iMixed) = mean(silh_c);
+                obj.m_idx(:,iMixed) = idx;
+%                 silhouette_mixed_mean(iMixed) = mean(silh_c);
                 %                 catch
                 %                     fprintf('Error Non-existent field categorical. iMixed = %d', ...
                 %                         iMixed);
