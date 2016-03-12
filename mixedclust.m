@@ -1,5 +1,5 @@
 classdef mixedclust
-    %MIXEDCLUST is a class for comparing mixed and numeric kmeans clustering
+    %MIXEDCLUST is a class for copmuting kmeans clustering
     %for data sets with numeric and categorical variables.
     %
     % Other m-files required:
@@ -71,6 +71,9 @@ classdef mixedclust
         normalizedData
         tempvar
         all_dist
+        silh_mean
+        performance
+        idx
     end
     
     methods
@@ -121,12 +124,12 @@ classdef mixedclust
             %% Mixed KMeans
             obj.tempvar.silhouette_mixed_mean = zeros(1,obj.trialsNo);
             
-            obj.tempvar.obj.m_idx = zeros(obj.tempvar.dn,obj.trialsNo);
-                        
+            obj.m_idx = zeros(obj.tempvar.dn,obj.trialsNo);
+            
             [obj.tempvar.n,obj.tempvar.m] = size(obj.data);
             obj.tempvar.idx_num = find(~obj.inputType);
             
-            %% Normalize Numeric Data            
+            %% Normalize Numeric Data
             for i=1:numel(obj.tempvar.idx_num)
                 obj.data(:,obj.tempvar.idx_num(i)) = (obj.data(:,obj.tempvar.idx_num(i)) - ...
                     repmat(min(obj.data(:,obj.tempvar.idx_num(i))),size(obj.data(:,obj.tempvar.idx_num(i))))) ...
@@ -138,17 +141,17 @@ classdef mixedclust
             %% Discretize Numeric Data
             obj.data_discrete = obj.data;
             %ensure k << N
-%             if obj.tempvar.dn >1000
-%                 max_k = round(obj.tempvar.dn/200);
-%             else
-                max_k = 20;
-%             end
+            %             if obj.tempvar.dn >1000
+            %                 max_k = round(obj.tempvar.dn/200);
+            %             else
+            max_k = 20;
+            %             end
             obj.tempvar.idx_cat = find(-1*obj.inputType+1);
             for i=1:numel(obj.tempvar.idx_cat)
                 silh_avg = zeros(max_k,1);
                 data_num = obj.data(:,obj.tempvar.idx_cat(i));
                 for k_iter=1:max_k
-
+                    
                     [idx,~,~,D]=kmeans(data_num,k_iter+1,'dist', ...
                         'sqeuclidean','MaxIter',100,'Options',statset('UseParallel',1));
                     [Drow,~] = size(D);
@@ -164,11 +167,11 @@ classdef mixedclust
                     else
                         silh_avg(k_iter) = -10000000;
                     end
- 
+                    
                 end
                 [~,k_best] = max(silh_avg);
                 k_best = k_best+1;
-                obj.data_discrete(:,obj.tempvar.idx_cat(i)) = kmeans(obj.data(:,obj.tempvar.idx_cat(i)),k_best);           
+                obj.data_discrete(:,obj.tempvar.idx_cat(i)) = kmeans(obj.data(:,obj.tempvar.idx_cat(i)),k_best);
             end
         end
         function obj = sigpairs(obj)
@@ -197,13 +200,11 @@ classdef mixedclust
         end
         function obj = mclust(obj)
             n = obj.tempvar.dn;
-            iMixed = 1;
-            while iMixed < obj.trialsNo+1
+            for iMixed = 1:obj.trialsNo
                 %try
                 curr_idx = randi([1 obj.k],n,1);
-                                
+                
                 obj = algo_distance(obj);
-                all_dist = obj.all_dist;
                 
                 new_idx = zeros(n,1);
                 
@@ -215,47 +216,54 @@ classdef mixedclust
                     end
                     
                     all_centers = struct;
+                    droppedACluster = 0;
                     for i=1:obj.k
                         curr_cluster = obj.data(curr_idx==i,:);
                         curr_center = cluster_center(curr_cluster,obj);
+                        if curr_center.cluster_size < 1
+                            droppedACluster = 1;
+                        end
                         name = ['center_',sprintf('%03d',i)];
                         all_centers.(name) = curr_center;
                     end
                     
                     silh_c = zeros(1,n);
-                    for i=1:n
-                        k_distances = zeros(obj.k,1);
-                        data_i = obj.data(i,:);
-                        for j=1:obj.k
-                            name_now = ['center_',sprintf('%03d',j)];
-                            center_now = all_centers.(name_now);
-                            obj.tempvar.data_i = data_i;
-                            obj.tempvar.center_now = center_now;
-                            obj.tempvar.all_dist = all_dist;
-                            
-                            k_distances(j) = dist_to_center(obj);
-                        end
+                    
+                    if droppedACluster == 0
                         
-                        [~,new_idx(i)] = min(k_distances);
-%                         m_distance(i,:,iMixed) = k_distances;
-                        min1 = min(k_distances);
-                        min2 = min(setdiff(k_distances(:),min(k_distances(:))));
-                        silh_c(i) = (min2-min1)/max(min1,min2);
+                        for i=1:n
+                            k_distances = zeros(obj.k,1);
+                            data_i = obj.data(i,:);
+                            for j=1:obj.k
+                                name_now = ['center_',sprintf('%03d',j)];
+                                center_now = all_centers.(name_now);
+                                obj.tempvar.data_i = data_i;
+                                obj.tempvar.center_now = center_now;
+                                obj.tempvar.all_dist = obj.all_dist;
+                                k_distances(j) = dist_to_center(obj);
+                            end
+                            
+                            [~,new_idx(i)] = min(k_distances);
+                            %                         m_distance(i,:,iMixed) = k_distances;
+                            min1 = min(k_distances);
+                            min2 = min(setdiff(k_distances(:),min(k_distances(:))));
+                            silh_c(i) = (min2-min1)/max(min1,min2);
+                        end
+                    else
+                        new_idx = randi([1 obj.k],n,1);
                     end
                     count = count+1;
-                    
                 end
                 
                 idx = new_idx;
                 obj.m_idx(:,iMixed) = idx;
-%                 silhouette_mixed_mean(iMixed) = mean(silh_c);
+                obj.silh_mean(iMixed) = mean(silh_c);
                 %                 catch
                 %                     fprintf('Error Non-existent field categorical. iMixed = %d', ...
                 %                         iMixed);
                 %                     display('- - - -  execution will continue  - - - -')
                 %                     iMixed = iMixed-1;
                 %                 end
-                iMixed = iMixed+1;
             end
             
         end
@@ -342,7 +350,6 @@ classdef mixedclust
             end
             % find average distance, which is the significance
             sig = delta_sum/num_delta;
-            display('signif done')
         end
         
         
@@ -377,7 +384,7 @@ classdef mixedclust
                     curr_pair = all_pairs(j,:);
                     
                     % find distance between the pair for all Aj
-                    parfor k = 1:m-1
+                    for k = 1:m-1
                         % define aj
                         aj = data_discrete(:,feat_c(k));
                         
@@ -529,7 +536,7 @@ classdef mixedclust
             sum_distance_numerical_v = zeros(1,numel(num_idx));
             
             % find distance for each numerical attribute and add to sum
-            parfor i=1:numel(num_idx)
+            for i=1:numel(num_idx)
                 d = x(num_idx(i));
                 name = ['att_',sprintf('%03d',num_idx(i))];
                 num_center = c.numerical.(name);
@@ -544,13 +551,12 @@ classdef mixedclust
             sum_distance_categorical = 0;
             
             % find distance for each categorical attribute and add to sum
-            
             for i=1:numel(cat_idx)
                 % access the current categorical attribute from structure
                 name = ['att_',sprintf('%03d',cat_idx(i))];
                 curr_att = c.categorical.(name);
-               value_names = fieldnames(curr_att);
-
+                value_names = fieldnames(curr_att);
+                
                 % initialize sum for this categorical attribute
                 sum_categorical_current = zeros(1,numel(value_names));
                 
@@ -574,8 +580,8 @@ classdef mixedclust
                             count_in_cluster*dist_all(idx_dist,4))^2;
                     end
                 end
-                sum_distance_categorical = sum(sum_categorical_current)
-            end                       
+                sum_distance_categorical = sum(sum_categorical_current);
+            end
             % overall distance
             theta = sum_distance_numerical + sum_distance_categorical;
         end

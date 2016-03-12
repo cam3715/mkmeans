@@ -43,6 +43,7 @@ classdef clusteringCompare
         numericClust
         output
         trialsNo
+        inputType
         data
         tempvar
     end
@@ -58,16 +59,17 @@ classdef clusteringCompare
             end
             obj.trialsNo = trialsNo;
             obj = dataimport(obj,filename, catAttributes, ncols, startRow);
-            obj.mixedClust = mixedclust(obj.data, obj.tempvar.k, 1000, inputType,trialsNo);
-            obj.mixedClust = mclust(obj.mixedClust);
             [n,m] = size(obj.data);
+            obj.mixedClust = mixedclust(obj.data, obj.tempvar.k, 1000, obj.inputType,trialsNo);
+            obj.mixedClust = mclust(obj.mixedClust);
+            obj.mixedClust.idx = obj.mixedClust.m_idx(:,:,1);
             obj.numericClust = struct;
             obj.numericClust.idx = zeros(m,obj.trialsNo);
             obj.numericClust.D = zeros(m,obj.tempvar.k,obj.trialsNo);
             obj.numericClust.silh = zeros(n,obj.trialsNo);
             obj.numericClust.avg_silh = zeros(1,obj.trialsNo);
             for i=1:obj.trialsNo
-                [idx,~,~,D] = kmeans(data,obj.tempvar.k);
+                [idx,~,~,D] = kmeans(obj.data,obj.tempvar.k);
                 obj.numericClust.idx = idx;
                 obj.numericClust.dist(:,:,i) = D;
                 silh = zeros(n,1);
@@ -78,27 +80,27 @@ classdef clusteringCompare
                 obj.numericClust.silh(:,i) = silh;
                 obj.numericClust.avg_silh(i) = mean(silh);
             end
+            obj = compareOut(obj);
         end
         function obj = compareOut(obj)
-            obj.numericClust.performance = zeros(1,obj.tempvar.trialsNo);
-            obj.mixedClust.performance = zeros(1,obj.tempvar.trialsNo);
+            obj.numericClust.performance = zeros(1,obj.trialsNo);
+            obj.mixedClust.performance = zeros(1,obj.trialsNo);
             for nameidx=1:2
                 if nameidx==1
                     name = 'mixedClust';
                 elseif nameidx==2
                     name = 'numericClusst';
                 end
-                for i=1:obj.tempvar.trialsNo
+                for i=1:obj.trialsNo
                     idx = obj.(name).idx(:,:,i);
                     k = numel(unique(obj.output));
                     ErrorMatrix = zeros(k);
                     output_values = unique(obj.output);
                     for emCol = 1:k
-                        parfor emRow = 1:k
+                        for emRow = 1:k
                             output_emRow = output_values(emRow);
                             for oRow = 1:length(obj.output)
-                                if (obj.output ~= output_emRow) && ...
-                                        (idx(oRow) == emCol);
+                                if (obj.output(oRow) ~= output_emRow) && (idx(oRow) == emCol);
                                     ErrorMatrix(emCol,emRow) ...
                                         = ErrorMatrix(emCol,emRow)+1;
                                 end
@@ -165,16 +167,16 @@ classdef clusteringCompare
             obj.tempvar.k = length(unique(obj.output));
             
             [~,dc] = size(obj.data);
-            inputType = zeros(1,dc);
+            obj.inputType = zeros(1,dc);
             for q=1:length(catAttributes)
-                inputType(catAttributes(q)) = 1;
+                obj.inputType(catAttributes(q)) = 1;
                 if min(min(obj.data(:,catAttributes(q))))== 0
                     obj.data(:,catAttributes(q)) = obj.data(:,catAttributes(q)) + 1;
                 elseif min(min(obj.data(:,catAttributes(q))))~=1
                     disp('Error: Datasource may not have proper categorical assignments')
                 end
             end
-            obj.tempvar.inputType = inputType;
+            obj.tempvar.inputType = obj.inputType;
         end
         function visulaizeNum(obj, trialnum)
             if nargin < 2
