@@ -16,7 +16,8 @@ for i=1:5
         
         display('Heart')
         heartlabels = [2,3,6,7,9,11,12,13];
-        heart = clusteringCompare('Heart2.csv',heartlabels,14,2,nTrials);
+        heart = clusteringCompare('Heart2.csv',...
+            heartlabels,14,2,nTrials);
         sendEmail('Heart Done!')
         
     elseif i==4
@@ -29,7 +30,8 @@ for i=1:5
         
         display('Australian')
         australianlabels = [1,4,6,8,9,11,12];
-        australian = clusteringCompare('australian.all.csv',australianlabels,15,2,nTrials);
+        australian = clusteringCompare('australian.all.csv',...
+            australianlabels,15,2,nTrials);
         sendEmail('Australian Done!')
         
     end

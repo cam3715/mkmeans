@@ -4,9 +4,10 @@ classdef mixedclust
     %
     % Other m-files required:
     %     assignmentoptimal.m, Markus Buehren ...
-    %         http://www.mathworks.com/matlabcentral/fileexchange/ ...
-    %         6543-functions-for-the-rectangular-assignment-problem ...
-    %         /content/assignmentoptimal.m
+    %         http://www.mathworks.com/matlabcentral/...
+    %           fileexchange/6543-functions-for-the-...
+    %           rectangular-assignment-problem ...
+    %            /content/assignmentoptimal.m
     %     This function implements the Hungarian Algorithm.
     %
     % Subfunctions:
@@ -18,7 +19,8 @@ classdef mixedclust
     %     These subfunctions can also be found as part of Ahmad Alsahaf's...
     %       amjams/mixedkmeans package on MATLAB Central/FileExchange.  They ...
     %       have been modified for use, and are inluded in mixedclust.m.
-    %       http:///www.mathworks.com/matlabcentral/fileexchange
+    %       http:///www.mathworks.com/...
+    %           matlabcentral/fileexchange
     %
     % Author: Camden Glenn Bock
     % 598 Bates College, Lewistion, ME 04240
@@ -116,8 +118,10 @@ classdef mixedclust
             pointClusterVis(obj.mixedClust, trialnum)
         end
         function obj = normalize(obj)
-            obj.tempvar.m_distance = zeros(obj.tempvar.dn,obj.k,obj.trialsNo);
-            obj.tempvar.n_distance = zeros(obj.tempvar.dn,obj.k,obj.trialsNo);
+            obj.tempvar.m_distance = ...
+                zeros(obj.tempvar.dn,obj.k,obj.trialsNo);
+            obj.tempvar.n_distance = ...
+                zeros(obj.tempvar.dn,obj.k,obj.trialsNo);
             
             
             
@@ -131,9 +135,12 @@ classdef mixedclust
             
             %% Normalize Numeric Data
             for i=1:numel(obj.tempvar.idx_num)
-                obj.data(:,obj.tempvar.idx_num(i)) = (obj.data(:,obj.tempvar.idx_num(i)) - ...
-                    repmat(min(obj.data(:,obj.tempvar.idx_num(i))),size(obj.data(:,obj.tempvar.idx_num(i))))) ...
-                    /(max(obj.data(:,obj.tempvar.idx_num(i)))-min(obj.data(:,obj.tempvar.idx_num(i))));
+                obj.data(:,obj.tempvar.idx_num(i)) = ...
+                    (obj.data(:,obj.tempvar.idx_num(i)) - ...
+                    repmat(min(obj.data(:,obj.tempvar.idx_num(i))),...
+                    size(obj.data(:,obj.tempvar.idx_num(i))))) ...
+                    /(max(obj.data(:,obj.tempvar.idx_num(i)))...
+                    -min(obj.data(:,obj.tempvar.idx_num(i))));
             end
             obj.normalizedData = obj.data;
         end
@@ -152,14 +159,18 @@ classdef mixedclust
                 data_num = obj.data(:,obj.tempvar.idx_cat(i));
                 for k_iter=1:max_k
                     
-                    [idx,~,~,D]=kmeans(data_num,k_iter+1,'dist', ...
-                        'sqeuclidean','MaxIter',100,'Options',statset('UseParallel',1));
+                    [idx,~,~,D]=...
+                        kmeans(data_num,k_iter+1,'dist', ...
+                        'sqeuclidean','MaxIter',100,...
+                        'Options',statset('UseParallel',1));
                     [Drow,~] = size(D);
                     silh = zeros(1,Drow);
                     for drow = 1:Drow
                         [a_drow,excl_D] = min(D(drow,:));
-                        b_drow = min(D(drow,[1:(excl_D-1),(excl_D+1):end]));
-                        silh(drow) = (b_drow-a_drow)/max(a_drow,b_drow);
+                        b_drow = min(D(drow,[1:(excl_D-1),...
+                            (excl_D+1):end]));
+                        silh(drow) = (b_drow-a_drow)...
+                            /max(a_drow,b_drow);
                     end
                     %Ensure selection has >1 unique value
                     if numel(unique(idx))>1
@@ -171,7 +182,9 @@ classdef mixedclust
                 end
                 [~,k_best] = max(silh_avg);
                 k_best = k_best+1;
-                obj.data_discrete(:,obj.tempvar.idx_cat(i)) = kmeans(obj.data(:,obj.tempvar.idx_cat(i)),k_best);
+                obj.data_discrete(:,obj.tempvar.idx_cat(i)) = ...
+                    kmeans(obj.data(:,obj.tempvar.idx_cat(i)),...
+                    k_best);
             end
         end
         function obj = sigpairs(obj)
@@ -209,7 +222,8 @@ classdef mixedclust
                 new_idx = zeros(n,1);
                 
                 count = 0;
-                while(isequal(new_idx,curr_idx)==0 && count<obj.max_iter)
+                while(isequal(new_idx,curr_idx)==0 &&...
+                        count<obj.max_iter)
                     
                     if count>0
                         curr_idx = new_idx;
@@ -219,7 +233,7 @@ classdef mixedclust
                     droppedACluster = 0;
                     for i=1:obj.k
                         curr_cluster = obj.data(curr_idx==i,:);
-                        curr_center = cluster_center(curr_cluster,obj);
+                        curr_center = cluster_center(curr_cluster, obj);
                         if curr_center.cluster_size < 1
                             droppedACluster = 1;
                         end
@@ -235,7 +249,8 @@ classdef mixedclust
                             k_distances = zeros(obj.k,1);
                             data_i = obj.data(i,:);
                             for j=1:obj.k
-                                name_now = ['center_',sprintf('%03d',j)];
+                                name_now = ['center_',...
+                                    sprintf('%03d',j)];
                                 center_now = all_centers.(name_now);
                                 obj.tempvar.data_i = data_i;
                                 obj.tempvar.center_now = center_now;
@@ -244,10 +259,11 @@ classdef mixedclust
                             end
                             
                             [~,new_idx(i)] = min(k_distances);
-                            %                         m_distance(i,:,iMixed) = k_distances;
                             min1 = min(k_distances);
-                            min2 = min(setdiff(k_distances(:),min(k_distances(:))));
-                            silh_c(i) = (min2-min1)/max(min1,min2);
+                            min2 = min(setdiff(k_distances(:),...
+                                min(k_distances(:))));
+                            silh_c(i) = (min2-min1)/...
+                                max(min1,min2);
                         end
                     else
                         new_idx = randi([1 obj.k],n,1);
@@ -328,9 +344,9 @@ classdef mixedclust
                         y_in_ai = find(a==curr_pair(2));
                         
                         % probabilities
-                        p_ux = numel(x_in_ai(ismembc(x_in_ai,ut_in_aj))) ...
+                        p_ux = numel(x_in_ai(ismembc(x_in_ai, ut_in_aj))) ...
                             /numel(x_in_ai);
-                        p_uy = numel(y_in_ai(ismembc(y_in_ai,ut_in_aj))) ...
+                        p_uy = numel(y_in_ai(ismembc(y_in_ai, ut_in_aj))) ...
                             /numel(y_in_ai);
                         
                         % conditions
@@ -411,9 +427,9 @@ classdef mixedclust
                             y_in_ai = find(ai==curr_pair(2));
                             
                             % probabilities
-                            p_ux = numel(x_in_ai(ismembc(x_in_ai,ut_in_aj))) ...
+                            p_ux = numel(x_in_ai(ismembc(x_in_ai, ut_in_aj))) ...
                                 /numel(x_in_ai);
-                            p_uy = numel(y_in_ai(ismembc(y_in_ai,ut_in_aj))) ...
+                            p_uy = numel(y_in_ai(ismembc(y_in_ai, ut_in_aj))) ...
                                 /numel(y_in_ai);
                             
                             % conditions
@@ -437,7 +453,8 @@ classdef mixedclust
                     %         second_value(higher),distance];
                     pair_sorted = sort(curr_pair,'ascend');
                     all_dist = [all_dist; ...
-                        i,pair_sorted(1),pair_sorted(2),sum_delta];
+                        i,pair_sorted(1),pair_sorted(2),...
+                        sum_delta];
                     obj.all_dist = all_dist;
                 end
             end
@@ -568,16 +585,21 @@ classdef mixedclust
                     count_in_cluster = curr_att.(value_names{j}).count;
                     
                     % find the distance from the list
-                    sorted_values = sort([value_in_point,value_in_cluster],'ascend');
-                    idx_dist = dist_all(:,1)==cat_idx(i)&dist_all(:,2) == ...
-                        sorted_values(1) & dist_all(:,3) == sorted_values(2);
+                    sorted_values = ...
+                        sort([value_in_point,value_in_cluster],...
+                        'ascend');
+                    idx_dist = dist_all(:,1)==...
+                        cat_idx(i)&dist_all(:,2) == ...
+                        sorted_values(1) & dist_all(:,3) ==...
+                        sorted_values(2);
                     
                     % set distance to zero if value is equal to center, compute dist
                     % othewise (i.e. only update when different values
                     
                     if (sorted_values(1) ~= sorted_values(2))
                         sum_categorical_current(j) = ((1/cluster_size)*...
-                            count_in_cluster*dist_all(idx_dist,4))^2;
+                            count_in_cluster*...
+                            dist_all(idx_dist, 4))^2;
                     end
                 end
                 sum_distance_categorical = sum(sum_categorical_current);

@@ -60,7 +60,8 @@ classdef clusteringCompare
             obj.trialsNo = trialsNo;
             obj = dataimport(obj,filename, catAttributes, ncols, startRow);
             [n,m] = size(obj.data);
-            obj.mixedClust = mixedclust(obj.data, obj.tempvar.k, 1000, obj.inputType,trialsNo);
+            obj.mixedClust = mixedclust(obj.data, obj.tempvar.k, 1000,...
+                obj.inputType,trialsNo);
             obj.mixedClust = mclust(obj.mixedClust);
             obj.mixedClust.idx = obj.mixedClust.m_idx(:,:,1);
             obj.numericClust = struct;
@@ -100,8 +101,9 @@ classdef clusteringCompare
                         for emRow = 1:k
                             output_emRow = output_values(emRow);
                             for oRow = 1:length(obj.output)
-                                if (obj.output(oRow) ~= output_emRow) && (idx(oRow) == emCol);
-                                    ErrorMatrix(emCol,emRow) ...
+                                if (obj.output(oRow) ~= output_emRow)...
+                                        && (idx(oRow) == emCol);
+                                    ErrorMatrix(emCol, emRow)...
                                         = ErrorMatrix(emCol,emRow)+1;
                                 end
                             end
@@ -127,7 +129,8 @@ classdef clusteringCompare
             for i = 2:2:(2*ncols)
                 formatSpec((i-1):i) = inputBlock;
             end
-            formatSpec((2*ncols+1):(2*ncols+8))=('%[^\n\r]');
+            formatSpec((2*ncols+1):(2*ncols+8))=...
+                ('%[^\n\r]');
             
             %% Open the text file.
             fileID = fopen(filename,'r');
@@ -145,7 +148,7 @@ classdef clusteringCompare
                     endRow(block)-startRow(block)+1, 'Delimiter', delimiter, ...
                     'HeaderLines', startRow(block)-1, 'ReturnOnError', false);
                 for col=1:length(dataArray)
-                    dataArray{col} = [dataArray{col};dataArrayBlock{col}];
+                    dataArray{col} = [dataArray{col}; dataArrayBlock{col}];
                 end
             end
             
@@ -170,9 +173,10 @@ classdef clusteringCompare
             obj.inputType = zeros(1,dc);
             for q=1:length(catAttributes)
                 obj.inputType(catAttributes(q)) = 1;
-                if min(min(obj.data(:,catAttributes(q))))== 0
-                    obj.data(:,catAttributes(q)) = obj.data(:,catAttributes(q)) + 1;
-                elseif min(min(obj.data(:,catAttributes(q))))~=1
+                if min(min(obj.data(:, catAttributes(q)))) == 0
+                    obj.data(:,catAttributes(q)) =...
+                        obj.data(:, catAttributes(q)) + 1;
+                elseif min(min(obj.data(:, catAttributes(q)))) ~=1
                     disp('Error: Datasource may not have proper categorical assignments')
                 end
             end
